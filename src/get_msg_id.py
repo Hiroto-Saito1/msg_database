@@ -4,6 +4,9 @@
 
 Example:
     * python get_msg_id.py
+
+Todo:
+    * get_magnetic_symmetry_from_database で得られる (rotations, translation, time_reversals) の組について、1651個の和集合を取る。
 """
 
 import os
@@ -14,11 +17,12 @@ import sqlite3
 
 class GetMsgId:
     def __init__(self):
-        # print(get_magnetic_symmetry_from_database(1))
+        print(get_magnetic_symmetry_from_database(np.random.randint(1, 1651)))
         # print(get_magnetic_spacegroup_type(np.random.randint(1, 1651)))
-        self.make_msg_type_table()
+        # self.make_msg_type_table()
 
     def make_msg_type_table(self):
+        """データベースに磁気空間群の表を追加する。"""
         if os.path.exists("msg_database.db"):
             os.remove("msg_database.db")
         conn = sqlite3.connect("msg_database.db")
@@ -60,7 +64,6 @@ class GetMsgId:
         rows = cur.fetchmany(10)
         for row in rows:
             print(row)
-
         conn.close()
 
     def make_example_database(self):
