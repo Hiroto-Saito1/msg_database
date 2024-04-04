@@ -1,4 +1,9 @@
-"""spglibを用いて1651個のIDの対応を得るプログラム
+# -*- coding: utf-8 -*-
+
+"""spglibを用いて1651個のIDの対応を得るSQLデータベースを構築するモジュール。
+
+Example:
+    * python get_msg_id.py
 """
 
 import numpy as np
@@ -9,8 +14,8 @@ import sqlite3
 class GetMsgId:
     def __init__(self):
         # print(get_magnetic_symmetry_from_database(1))
+        print(get_magnetic_spacegroup_type(1))
         # self.make_example_database()
-        pass
 
     def make_msg_type_table(self):
         msg_type = get_magnetic_spacegroup_type(1)
