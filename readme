@@ -1,2 +1,92 @@
-spglibを用いて1651個の磁気空間群(msg)について、msg番号と群操作が対応するRDBおよび中間テーブルを作る。
-msg番号から群操作一覧、およびある群操作からそれを持つmsg番号一覧を検索できるようにする。
+# msg_database
+
+spglib を用いて 1651 個の磁気空間群 MSG について、MSG 番号、MSG 種別情報、磁気対称操作を SQLite に保存し、双方向に検索するためのプロジェクトです。
+
+## できること
+
+- MSG 番号から、その MSG に含まれる群操作一覧を取得する。
+- 正規化済みの群操作から、その操作を含む MSG 番号一覧を取得する。
+- spglib の `get_magnetic_spacegroup_type()` で得られる MSG 種別情報を保存する。
+- `msg_type`, `operation`, `msg_operation` の 3 テーブルで、群操作の重複を排除して管理する。
+
+## セットアップ
+
+プロジェクト直下で仮想環境を作成し、editable install します。
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -e .
+.venv/bin/python -m pip install -r requirements-dev.txt
+```
+
+CLI は次のどちらでも実行できます。
+
+```bash
+.venv/bin/python -m msg_database.cli --help
+.venv/bin/msg-database --help
+```
+
+## DB 生成
+
+全 1651 件を生成する場合:
+
+```bash
+.venv/bin/msg-database build --db src/msg_database.db
+```
+
+少数の MSG ID だけで試す場合:
+
+```bash
+.venv/bin/msg-database build --db /tmp/msg.db --msg-id 1 --msg-id 2
+```
+
+現在生成済みの `src/msg_database.db` は次の件数です。
+
+- `msg_type`: 1651 行
+- `operation`: 1430 行
+- `msg_operation`: 38307 行
+
+## 検索
+
+MSG ID から群操作一覧を JSON で取得します。
+
+```bash
+.venv/bin/msg-database msg 1 --db src/msg_database.db --format json
+```
+
+群操作から、それを含む MSG ID を逆引きします。
+
+```bash
+.venv/bin/msg-database operation \
+  --rotation 1,0,0,0,1,0,0,0,1 \
+  --translation 0,0,0 \
+  --time-reversal 0 \
+  --db src/msg_database.db \
+  --format json
+```
+
+## テスト
+
+通常の開発サイクルでは slow テストを除外して実行します。`pytest.ini` の `addopts` により、単に `pytest` と打つと `slow` は除外されます。
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+全 1651 件の DB 構築を確認する slow テストは明示的に実行します。
+
+```bash
+.venv/bin/python -m pytest -q -m slow
+```
+
+品質確認:
+
+```bash
+.venv/bin/python -m ruff check .
+.venv/bin/python -m mypy src
+```
+
+## TDD 方針
+
+詳細な TDD の進め方は `TDD_PLAN.md` を参照してください。実装では、spglib 自体の正しさではなく、spglib の出力をこのプロジェクトが安定して正規化・保存・検索できることをテスト対象にしています。
