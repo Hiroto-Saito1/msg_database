@@ -142,7 +142,7 @@ class MsgRepository:
         ]
 
     def find_msg_ids_by_operation(self, operation: OperationKey) -> list[int]:
-        """operation を含む MSG ID 一覧を昇順で取得する。"""
+        """中間テーブル `msg_operation` を JOIN して MSG ID を逆引きする。"""
 
         rows = self.conn.execute(
             """
