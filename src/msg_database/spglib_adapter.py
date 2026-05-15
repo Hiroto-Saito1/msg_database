@@ -1,33 +1,24 @@
-"""Small adapter around spglib for easier testing and replacement."""
+"""旧 API 互換の spglib adapter。
+
+新規コードでは `providers.spglib_provider.SpglibProvider` を使う。
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-import spglib
+from msg_database.providers.spglib_provider import SpglibProvider
 
-from msg_database.repository import validate_msg_id
+_PROVIDER = SpglibProvider()
 
 
 def get_msg_type(msg_id: int) -> dict[str, object]:
-    msg_id = validate_msg_id(msg_id)
-    msg_type = spglib.get_magnetic_spacegroup_type(msg_id)
-    if msg_type is None:
-        raise ValueError(f"spglib returned no MSG type for msg_id {msg_id}")
-    return {
-        "msg_id": msg_id,
-        "uni_number": msg_type.uni_number,
-        "litvin_number": msg_type.litvin_number,
-        "bns_number": msg_type.bns_number,
-        "og_number": msg_type.og_number,
-        "number": msg_type.number,
-        "type": msg_type.type,
-    }
+    """旧 API と同じ dict 形式で MSG 種別情報を返す。"""
+
+    return _PROVIDER.get_msg_type(msg_id).as_dict()
 
 
 def get_symmetry(msg_id: int) -> dict[str, Any]:
-    msg_id = validate_msg_id(msg_id)
-    symmetry = spglib.get_magnetic_symmetry_from_database(msg_id)
-    if symmetry is None:
-        raise ValueError(f"spglib returned no symmetry for msg_id {msg_id}")
-    return symmetry
+    """旧 API と同じ dict 形式で symmetry 情報を返す。"""
+
+    return dict(_PROVIDER.get_symmetry(msg_id))

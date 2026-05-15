@@ -1,3 +1,5 @@
+"""CLI を subprocess で確認する統合テスト。"""
+
 import json
 import os
 import subprocess
@@ -5,10 +7,12 @@ import sys
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def run_cli(args, cwd):
+    """テスト対象 package を PYTHONPATH で指定して CLI を実行する。"""
+
     env = os.environ.copy()
     env["PYTHONPATH"] = str(cwd / "src")
     return subprocess.run(
@@ -22,6 +26,8 @@ def run_cli(args, cwd):
 
 
 def test_cli_build_and_query_msg(tmp_path):
+    """CLI で subset DB を生成し、MSG 検索・逆引き・metadata を確認する。"""
+
     db_path = tmp_path / "msg.db"
 
     build = run_cli(["build", "--db", str(db_path), "--msg-id", "1"], REPO_ROOT)
@@ -57,8 +63,17 @@ def test_cli_build_and_query_msg(tmp_path):
     assert reverse.returncode == 0, reverse.stderr
     assert json.loads(reverse.stdout)["msg_ids"] == [1]
 
+    metadata = run_cli(
+        ["metadata", "--db", str(db_path), "--format", "json"],
+        REPO_ROOT,
+    )
+    assert metadata.returncode == 0, metadata.stderr
+    assert json.loads(metadata.stdout)["schema_version"] == "1"
+
 
 def test_cli_rejects_invalid_msg_id(tmp_path):
+    """CLI build は範囲外 MSG ID を非ゼロ終了で拒否する。"""
+
     db_path = tmp_path / "msg.db"
 
     result = run_cli(["build", "--db", str(db_path), "--msg-id", "0"], REPO_ROOT)

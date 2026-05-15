@@ -1,22 +1,33 @@
-"""Repository API for storing and querying MSG records."""
+"""SQLite への保存と検索を担当する repository 層。
+
+この層は `OperationKey` の内部表現と SQLite の保存表現の境界でもある。
+呼び出し側のトランザクション制御を尊重するため、原則として commit は行わない。
+"""
 
 from __future__ import annotations
 
 import sqlite3
-from typing import Any, Mapping, cast
+from typing import Mapping
 
-from msg_database.normalize import OperationKey
-
-MIN_MSG_ID = 1
-MAX_MSG_ID = 1651
+from msg_database.domain import MsgType, OperationKey, validate_msg_id
 
 
 class MsgRepository:
+    """MSG DB に対する低レベルな保存・検索 API。"""
+
     def __init__(self, conn: sqlite3.Connection):
+        """既存の SQLite connection を受け取って repository を作る。"""
+
         self.conn = conn
 
-    def upsert_msg_type(self, msg_type: Mapping[str, object]) -> None:
-        msg_id = validate_msg_id(msg_type["msg_id"])
+    def upsert_msg_type(self, msg_type: MsgType | Mapping[str, object]) -> None:
+        """MSG 種別情報を登録または更新する。"""
+
+        record = (
+            msg_type
+            if isinstance(msg_type, MsgType)
+            else MsgType.from_mapping(msg_type)
+        )
         self.conn.execute(
             """
             INSERT INTO msg_type (
@@ -38,18 +49,19 @@ class MsgRepository:
                 type = excluded.type
             """,
             (
-                msg_id,
-                _as_int(msg_type["uni_number"]),
-                _as_int(msg_type["litvin_number"]),
-                str(msg_type["bns_number"]),
-                str(msg_type["og_number"]),
-                _as_int(msg_type["number"]),
-                _as_int(msg_type["type"]),
+                record.msg_id,
+                record.uni_number,
+                record.litvin_number,
+                record.bns_number,
+                record.og_number,
+                record.number,
+                record.type,
             ),
         )
-        self.conn.commit()
 
-    def get_msg_type(self, msg_id: int) -> dict[str, object]:
+    def get_msg_type(self, msg_id: int) -> MsgType:
+        """指定 MSG ID の種別情報を取得する。"""
+
         row = self.conn.execute(
             """
             SELECT
@@ -67,20 +79,28 @@ class MsgRepository:
         ).fetchone()
         if row is None:
             raise KeyError(f"msg_id {msg_id} is not registered")
-        return dict(row)
+        return MsgType.from_mapping(dict(row))
 
     def count_msg_types(self) -> int:
+        """`msg_type` テーブルの行数を返す。"""
+
         return int(self.conn.execute("SELECT COUNT(*) FROM msg_type").fetchone()[0])
 
     def count_operations(self) -> int:
+        """重複排除後の operation 件数を返す。"""
+
         return int(self.conn.execute("SELECT COUNT(*) FROM operation").fetchone()[0])
 
     def count_msg_operations(self) -> int:
+        """MSG と operation の対応件数を返す。"""
+
         return int(
             self.conn.execute("SELECT COUNT(*) FROM msg_operation").fetchone()[0]
         )
 
     def set_msg_operations(self, msg_id: int, operations: list[OperationKey]) -> None:
+        """1 つの MSG に属する operation 一覧を順序付きで置き換える。"""
+
         msg_id = validate_msg_id(msg_id)
         self.conn.execute("DELETE FROM msg_operation WHERE msg_id = ?", (msg_id,))
         for operation_order, operation in enumerate(operations):
@@ -94,9 +114,10 @@ class MsgRepository:
                 """,
                 (msg_id, operation_id, operation_order),
             )
-        self.conn.commit()
 
     def find_operations_by_msg_id(self, msg_id: int) -> list[OperationKey]:
+        """MSG ID から対応する operation 一覧を順序付きで取得する。"""
+
         rows = self.conn.execute(
             """
             SELECT
@@ -112,7 +133,7 @@ class MsgRepository:
             (validate_msg_id(msg_id),),
         ).fetchall()
         return [
-            OperationKey(
+            OperationKey.from_storage(
                 str(row["rotation_key"]),
                 str(row["translation_key"]),
                 int(row["time_reversal"]),
@@ -121,6 +142,8 @@ class MsgRepository:
         ]
 
     def find_msg_ids_by_operation(self, operation: OperationKey) -> list[int]:
+        """operation を含む MSG ID 一覧を昇順で取得する。"""
+
         rows = self.conn.execute(
             """
             SELECT msg_operation.msg_id
@@ -135,12 +158,36 @@ class MsgRepository:
             (
                 operation.rotation_key,
                 operation.translation_key,
-                operation.time_reversal,
+                operation.time_reversal_int,
             ),
         ).fetchall()
         return [int(row["msg_id"]) for row in rows]
 
+    def set_metadata(self, metadata: Mapping[str, str]) -> None:
+        """生成時のメタデータを upsert する。"""
+
+        for key, value in metadata.items():
+            self.conn.execute(
+                """
+                INSERT INTO metadata (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value = excluded.value
+                """,
+                (key, value),
+            )
+
+    def get_metadata(self) -> dict[str, str]:
+        """保存済みメタデータを key 昇順の dict として返す。"""
+
+        rows = self.conn.execute(
+            "SELECT key, value FROM metadata ORDER BY key"
+        ).fetchall()
+        return {str(row["key"]): str(row["value"]) for row in rows}
+
     def _upsert_operation(self, operation: OperationKey) -> int:
+        """operation を重複排除して保存し、operation_id を返す。"""
+
         self.conn.execute(
             """
             INSERT OR IGNORE INTO operation (
@@ -153,7 +200,7 @@ class MsgRepository:
             (
                 operation.rotation_key,
                 operation.translation_key,
-                operation.time_reversal,
+                operation.time_reversal_int,
             ),
         )
         row = self.conn.execute(
@@ -167,20 +214,9 @@ class MsgRepository:
             (
                 operation.rotation_key,
                 operation.translation_key,
-                operation.time_reversal,
+                operation.time_reversal_int,
             ),
         ).fetchone()
         if row is None:
             raise RuntimeError("failed to insert operation")
         return int(row["operation_id"])
-
-
-def validate_msg_id(msg_id: object) -> int:
-    value = _as_int(msg_id)
-    if not MIN_MSG_ID <= value <= MAX_MSG_ID:
-        raise ValueError(f"msg_id must be between {MIN_MSG_ID} and {MAX_MSG_ID}")
-    return value
-
-
-def _as_int(value: object) -> int:
-    return int(cast(Any, value))

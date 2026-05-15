@@ -1,7 +1,4 @@
-"""旧 import path 互換の schema module。
-
-新規コードでは `msg_database.db.connection` を使う。
-"""
+"""SQLite support for msg_database."""
 
 from msg_database.db.connection import SCHEMA_VERSION, connect, create_schema
 
