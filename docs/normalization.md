@@ -1,13 +1,15 @@
-# Operation normalization
+# Operation 正規化
 
-`spglib` symmetry data is normalized before insertion.
+`spglib` の symmetry data は、SQLite へ保存する前に正規化します。
 
-- Rotation matrices are stored internally as 9 integer values in row-major order.
-- Translation vectors are stored internally as three `Fraction` values limited to denominator 24.
-- Time reversal is stored internally as `bool`.
+- rotation matrix は、内部では行優先の 9 個の整数として保持します。
+- translation vector は、内部では分母 24 以内に制限した 3 個の `Fraction` として保持します。
+- time reversal は、内部では `bool` として保持します。
 
-SQLite receives stable text keys only at the repository boundary:
+SQLite に渡す安定した文字列キーは、repository 層の境界でだけ生成します。
 
 - `rotation_key`: `1,0,0,0,1,0,0,0,1`
 - `translation_key`: `0,1/2,0`
-- `time_reversal`: `0` or `1`
+- `time_reversal`: `0` または `1`
+
+この分離により、内部ロジックでは型付きの値として比較でき、DB では一意制約に使いやすい文字列として扱えます。

@@ -41,3 +41,9 @@ jobs:
     - name: Type check with mypy
       run: |
         mypy src
+
+    - name: Build and check distribution
+      if: matrix.python-version == '3.13'
+      run: |
+        python -m build
+        python -m twine check --strict dist/*

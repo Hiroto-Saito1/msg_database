@@ -1,12 +1,38 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "msg-database"
 version = "0.1.0"
 description = "Build and query a SQLite database of magnetic space group operations from spglib."
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Hiroto Saito" },
+]
+keywords = [
+    "crystallography",
+    "magnetic-space-group",
+    "msg",
+    "spglib",
+    "sqlite",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
 dependencies = [
     "numpy>=1.24",
     "spglib>=2.0",
@@ -14,11 +40,19 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "build",
     "mypy<2",
     "pytest",
     "pytest-cov",
     "ruff",
+    "twine",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Hiroto-Saito1/msg_database"
+Repository = "https://github.com/Hiroto-Saito1/msg_database"
+Issues = "https://github.com/Hiroto-Saito1/msg_database/issues"
+Changelog = "https://github.com/Hiroto-Saito1/msg_database/blob/main/CHANGELOG.md"
 
 [project.scripts]
 msg-database = "msg_database.cli:main"
@@ -27,7 +61,7 @@ msg-database = "msg_database.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-msg_database = ["db/schema.sql", "data/*.md", "data/*.sqlite"]
+msg_database = ["db/schema.sql", "data/*.md", "data/*.sqlite", "py.typed"]
 
 [tool.ruff]
 line-length = 88

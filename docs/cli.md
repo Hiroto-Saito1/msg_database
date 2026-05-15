@@ -1,20 +1,20 @@
-# CLI reference
+# CLI リファレンス
 
-`msg-database` は `pyproject.toml` の console script で定義されています。
+`msg-database` は `pyproject.toml` の console script として定義されています。
 
 ```toml
 [project.scripts]
 msg-database = "msg_database.cli:main"
 ```
 
-実行される Python 関数は `src/msg_database/cli.py` の `main()` です。引数の実装上の正本は、同じファイルの `build_parser()` にあります。
+実行される Python 関数は `src/msg_database/cli.py` の `main()` です。引数定義の正本は、同じファイルの `build_parser()` にあります。
 
 ## 共通事項
 
-- DB パスの型は filesystem path です。相対パスは実行時のカレントディレクトリから解釈されます。
-- 出力形式は `table` または `json` です。機械処理する場合は `json` を使います。
+- DB パスの型はファイルシステム上のパスです。相対パスは、実行時のカレントディレクトリから解釈されます。
+- 出力形式は `table` または `json` です。プログラムから処理する場合は `json` を使います。
 - MSG ID は整数で、spglib の MSG database が持つ `1` から `1651` の範囲です。
-- 詳細な実行時 help は `msg-database <command> --help` で確認できます。
+- 実行時の詳細なヘルプは `msg-database <command> --help` で確認できます。
 
 ```bash
 .venv/bin/msg-database --help
@@ -34,8 +34,8 @@ spglib から MSG データを取得し、SQLite DB を生成します。
 
 | 引数 | 型/形式 | 必須 | デフォルト | 説明 |
 |---|---|---:|---|---|
-| `--db` | path | no | `data/generated/msg_database.sqlite` | 出力する SQLite DB のパス。親ディレクトリは自動作成されます。 |
-| `--msg-id` | integer, `1`-`1651` | no | 全 MSG ID | 生成対象の MSG ID。複数回指定できます。省略時は `1` から `1651` まで全件を生成します。 |
+| `--db` | パス | いいえ | `data/generated/msg_database.sqlite` | 出力する SQLite DB のパス。親ディレクトリは自動作成されます。 |
+| `--msg-id` | 整数、`1`-`1651` | いいえ | 全 MSG ID | 生成対象の MSG ID。複数回指定できます。省略時は `1` から `1651` まで全件を生成します。 |
 
 例:
 
@@ -54,9 +54,9 @@ spglib から MSG データを取得し、SQLite DB を生成します。
 
 | 引数 | 型/形式 | 必須 | デフォルト | 説明 |
 |---|---|---:|---|---|
-| `MSG_ID` | integer, `1`-`1651` | yes | なし | 検索する MSG ID。位置引数として渡します。 |
-| `--db` | path | no | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
-| `--format` | `table` or `json` | no | `table` | 出力形式。 |
+| `MSG_ID` | 整数、`1`-`1651` | はい | なし | 検索する MSG ID。位置引数として渡します。 |
+| `--db` | パス | いいえ | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
+| `--format` | `table` または `json` | いいえ | `table` | 出力形式。 |
 
 例:
 
@@ -80,11 +80,11 @@ spglib から MSG データを取得し、SQLite DB を生成します。
 
 | 引数 | 型/形式 | 必須 | デフォルト | 説明 |
 |---|---|---:|---|---|
-| `--rotation` | 9 個の integer をカンマ区切り | yes | なし | 3x3 rotation matrix を行優先で渡します。例: `1,0,0,0,1,0,0,0,1` |
-| `--translation` | 3 個の integer/fraction をカンマ区切り | yes | なし | translation vector を渡します。分数は `1/2` のように書けます。例: `0,1/2,0` |
-| `--time-reversal` | `0` or `1` | yes | なし | 時間反転の有無。`0` は false、`1` は true です。 |
-| `--db` | path | no | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
-| `--format` | `table` or `json` | no | `table` | 出力形式。 |
+| `--rotation` | 9 個の整数をカンマ区切り | はい | なし | 3x3 rotation matrix を行優先で渡します。例: `1,0,0,0,1,0,0,0,1` |
+| `--translation` | 3 個の整数または分数をカンマ区切り | はい | なし | translation vector を渡します。分数は `1/2` のように書けます。例: `0,1/2,0` |
+| `--time-reversal` | `0` または `1` | はい | なし | 時間反転の有無。`0` は false、`1` は true です。 |
+| `--db` | パス | いいえ | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
+| `--format` | `table` または `json` | いいえ | `table` | 出力形式。 |
 
 例:
 
@@ -106,7 +106,7 @@ spglib から MSG データを取得し、SQLite DB を生成します。
 
 | 引数 | 型/形式 | 必須 | デフォルト | 説明 |
 |---|---|---:|---|---|
-| `--db` | path | no | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
-| `--format` | `table` or `json` | no | `table` | 出力形式。 |
+| `--db` | パス | いいえ | `data/generated/msg_database.sqlite` | 読み込む SQLite DB のパス。 |
+| `--format` | `table` または `json` | いいえ | `table` | 出力形式。 |
 
 metadata には、`schema_version`、`generated_at`、`python_version`、`numpy_version`、`spglib_version` などが含まれます。

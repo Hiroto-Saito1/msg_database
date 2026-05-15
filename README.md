@@ -12,6 +12,14 @@
 
 ## セットアップ
 
+PyPI 公開後は、通常の利用者は次のようにインストールできます。
+
+```bash
+python -m pip install msg-database
+```
+
+現時点でリポジトリから開発する場合は、editable install します。
+
 ```bash
 python3.11 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
@@ -64,6 +72,12 @@ MSG ID から群操作一覧を JSON で取得します。
 ```
 
 CLI 引数の型、形式、必須/任意、デフォルト値の詳細は [docs/cli.md](docs/cli.md) を参照してください。実行時には各サブコマンドの `--help` でも確認できます。
+
+## 配布
+
+配布物の build、TestPyPI/PyPI への publish、Trusted Publishing の設定手順は [docs/packaging.md](docs/packaging.md) を参照してください。
+
+この package は MIT License で配布します。詳細は [LICENSE](LICENSE) を参照してください。
 
 ## テスト
 
