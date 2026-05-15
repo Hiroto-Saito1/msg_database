@@ -23,8 +23,9 @@
 
 ### 実行環境
 
-- Python 3.9 以上。現在の GitHub Actions が Python 3.9 のため、まずは 3.9 互換を維持する。
-- `venv` または `conda`。研究用途で spglib や numpy を扱うため、ローカルでは conda でもよいが、CI では `pip install -r requirements.txt` で再現できる形にする。
+- Python 3.11 以上。
+- `venv` または `conda`。研究用途で spglib や numpy を扱うため、ローカルでは conda でもよい。
+- 依存関係は `pyproject.toml` を正本にし、CI では `pip install -e ".[dev]"` で再現する。
 
 ### 必須ライブラリ
 
@@ -38,14 +39,7 @@
 - `ruff`: lint と簡易フォーマット。小規模プロジェクトなので `black` と `flake8` を分けるより運用が軽い。
 - `mypy`: 型検査。最初は厳格にしすぎず、DB レコードや正規化済み操作の型を固める用途に使う。
 
-開発用依存は `requirements-dev.txt` として分けるのが扱いやすい。
-
-```txt
-pytest
-pytest-cov
-ruff
-mypy
-```
+開発用依存は `pyproject.toml` の `dev` optional dependency にまとめる。
 
 ## 目標アーキテクチャ
 
@@ -55,11 +49,16 @@ mypy
 src/
   msg_database/
     __init__.py
-    spglib_adapter.py      # spglib 呼び出しを薄く包む
+    domain.py              # 型付きドメインモデル
+    providers/
+      spglib_provider.py   # spglib 呼び出しを薄く包む
+    db/
+      connection.py        # SQLite 接続
+      schema.sql           # CREATE TABLE と index
     normalize.py           # 群操作の正規化
-    schema.py              # CREATE TABLE と index
     builder.py             # DB 構築処理
     repository.py          # 検索 API
+    queries.py             # 読み取り用API
     cli.py                 # コマンドライン入口
 ```
 
@@ -78,6 +77,11 @@ CREATE TABLE msg_type (
     og_number TEXT NOT NULL,
     number INTEGER NOT NULL,
     type INTEGER NOT NULL
+);
+
+CREATE TABLE metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
 );
 
 CREATE TABLE operation (
@@ -113,8 +117,14 @@ spglib の `get_magnetic_symmetry_from_database(msg_id)` は、概ね以下を�
 DB で一意性を保つため、保存前に次の形式へ変換する。
 
 - `rotation_key`: 3x3 整数行列を行優先で `1,0,0,0,1,0,0,0,1` のような文字列にする。
-- `translation_key`: 分数値として安定比較する。まずは `fractions.Fraction(x).limit_denominator(24)` を使い、`0,1/2,0` のような文字列にする。
-- `time_reversal`: `0` または `1` にする。
+- `translation`: 分数値として安定比較する。まずは `fractions.Fraction(x).limit_denominator(24)` を使う。
+- `time_reversal`: `bool` にする。
+
+DB 保存時だけ以下へ変換する。
+
+- `rotation_key`: `1,0,0,0,1,0,0,0,1`
+- `translation_key`: `0,1/2,0`
+- `time_reversal`: `0` または `1`
 
 浮動小数の丸め誤差を DB のキーに直接入れないことが重要である。
 
@@ -251,8 +261,7 @@ spglib と SQLite を組み合わせるテスト。
 開発中は以下を基本にする。
 
 ```bash
-python -m pip install -r requirements.txt
-python -m pip install -r requirements-dev.txt
+python -m pip install -e ".[dev]"
 pytest -q
 pytest -q -m "not slow"
 pytest -q --cov=src
@@ -266,13 +275,14 @@ CI では最低限、次を走らせる。
 ```bash
 pytest -q -m "not slow"
 ruff check .
+mypy src
 ```
 
 全件 DB 構築テストは時間がかかる可能性があるため、最初は手動または nightly 相当の扱いでよい。
 
 ## 実装順序
 
-1. `requirements-dev.txt` と `pytest.ini` を追加し、marker を定義する。
+1. `pyproject.toml` の `dev` extra と `pytest.ini` を追加し、marker を定義する。
 2. パッケージ構成を `src/msg_database/` に変更する。
 3. import 副作用をなくすテストを追加し、現在のランダム出力を削除する。
 4. `schema.py` とスキーマ作成テストを追加する。
@@ -290,7 +300,7 @@ ruff check .
 
 - `pytest -q -m "not slow"` がローカルと CI で成功する。
 - `pytest -q -m slow` がローカルで成功する。
-- `python -m msg_database.cli build --db src/msg_database.db` で 1651 件の DB を再生成できる。
+- `python -m msg_database.cli build --db data/generated/msg_database.sqlite` で 1651 件の DB を再生成できる。
 - `msg_type` に 1651 行が入る。
 - 任意の MSG ID から群操作一覧を取得できる。
 - 任意の正規化済み群操作から、それを含む MSG ID 一覧を取得できる。
@@ -298,8 +308,8 @@ ruff check .
 
 ## 注意点
 
-- `src/msg_database.db` のような生成物を Git 管理するかは早めに決める。再生成可能なら Git から外し、リリース成果物として扱う方が保守しやすい。
-- spglib のバージョンで出力形式や順序が変わる可能性があるため、`requirements.txt` ではバージョン固定を検討する。
+- `data/generated/msg_database.sqlite` のような生成物は Git 管理せず、必要ならリリース成果物として扱う。
+- spglib のバージョンで出力形式や順序が変わる可能性があるため、`pyproject.toml` と lock file でバージョン固定を検討する。
 - 群操作の順序に意味がない検索では集合として比較する。表示順が必要な場合だけ `operation_order` を使う。
 - SQLite の外部キーは接続ごとに `PRAGMA foreign_keys = ON` が必要である。
 - テストで `shell=True` は使わない。subprocess を使う場合は引数配列で実行する。

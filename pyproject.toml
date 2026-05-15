@@ -6,10 +6,18 @@ build-backend = "setuptools.build_meta"
 name = "msg-database"
 version = "0.1.0"
 description = "Build and query a SQLite database of magnetic space group operations from spglib."
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = [
-    "numpy",
-    "spglib",
+    "numpy>=1.24",
+    "spglib>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy<2",
+    "pytest",
+    "pytest-cov",
+    "ruff",
 ]
 
 [project.scripts]
@@ -18,9 +26,12 @@ msg-database = "msg_database.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+msg_database = ["db/schema.sql", "data/*.md", "data/*.sqlite"]
+
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py311"
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"

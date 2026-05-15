@@ -1,3 +1,5 @@
+"""spglib と SQLite を組み合わせた builder 統合テスト。"""
+
 import spglib
 import pytest
 
@@ -8,6 +10,8 @@ from msg_database.schema import connect
 
 @pytest.mark.integration
 def test_build_database_for_selected_msg_ids(tmp_path):
+    """少数 MSG ID の DB 生成で metadata と operation 件数を確認する。"""
+
     db_path = tmp_path / "msg.db"
 
     stats = build_database(db_path, msg_ids=[1, 2])
@@ -15,7 +19,9 @@ def test_build_database_for_selected_msg_ids(tmp_path):
 
     assert stats.msg_type_count == 2
     assert repo.count_msg_types() == 2
-    assert repo.get_msg_type(1)["bns_number"] == "1.1"
+    assert repo.get_msg_type(1).bns_number == "1.1"
+    assert repo.get_metadata()["schema_version"] == "1"
+    assert "spglib_version" in repo.get_metadata()
     assert len(repo.find_operations_by_msg_id(1)) == len(
         spglib.get_magnetic_symmetry_from_database(1)["rotations"]
     )
@@ -23,6 +29,8 @@ def test_build_database_for_selected_msg_ids(tmp_path):
 
 @pytest.mark.slow
 def test_build_database_for_all_msg_ids(tmp_path):
+    """全 1651 件の DB 生成が完走し、主要テーブルが埋まる。"""
+
     db_path = tmp_path / "full.db"
 
     stats = build_database(db_path)
