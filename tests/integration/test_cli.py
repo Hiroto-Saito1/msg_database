@@ -71,6 +71,23 @@ def test_cli_build_and_query_msg(tmp_path):
     assert json.loads(metadata.stdout)["schema_version"] == "1"
 
 
+def test_cli_help_documents_argument_shapes_and_defaults():
+    """CLI help に引数形式とデフォルト DB パスが表示される。"""
+
+    build_help = run_cli(["build", "--help"], REPO_ROOT)
+    assert build_help.returncode == 0
+    assert "--msg-id MSG_ID" in build_help.stdout
+    assert "integer in the range 1-1651" in build_help.stdout
+    assert "data/generated/msg_database.sqlite" in build_help.stdout
+
+    operation_help = run_cli(["operation", "--help"], REPO_ROOT)
+    assert operation_help.returncode == 0
+    assert "--rotation R11,R12,...,R33" in operation_help.stdout
+    assert "--translation T1,T2,T3" in operation_help.stdout
+    assert "--time-reversal {0,1}" in operation_help.stdout
+    assert "9 comma-separated integer rotation entries" in operation_help.stdout
+
+
 def test_cli_rejects_invalid_msg_id(tmp_path):
     """CLI build は範囲外 MSG ID を非ゼロ終了で拒否する。"""
 

@@ -26,6 +26,15 @@ from msg_database.queries import (
 DEFAULT_DB = Path("data/generated/msg_database.sqlite")
 
 
+class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter):
+    """None の default は表示せず、意味のある default だけ help に出す。"""
+
+    def _get_help_string(self, action: argparse.Action) -> str:
+        if action.default is None or action.default is argparse.SUPPRESS:
+            return action.help or ""
+        return super()._get_help_string(action) or ""
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI entrypoint。成功時は 0、入力や DB の問題は 2 を返す。"""
 
@@ -54,36 +63,134 @@ def main(argv: Sequence[str] | None = None) -> int:
 def build_parser() -> argparse.ArgumentParser:
     """サブコマンドを含む argparse parser を組み立てる。"""
 
-    parser = argparse.ArgumentParser(prog="msg_database")
-    subparsers = parser.add_subparsers(dest="command")
+    parser = argparse.ArgumentParser(
+        prog="msg-database",
+        description="Build and query a SQLite database of magnetic space group data.",
+        formatter_class=HelpFormatter,
+    )
+    subparsers = parser.add_subparsers(
+        dest="command",
+        metavar="{build,msg,operation,metadata}",
+    )
 
-    build = subparsers.add_parser("build", help="build a SQLite database")
-    build.add_argument("--db", type=Path, default=DEFAULT_DB)
+    build = subparsers.add_parser(
+        "build",
+        help="build a SQLite database",
+        description="Build a SQLite database from spglib MSG data.",
+        formatter_class=HelpFormatter,
+    )
+    build.add_argument(
+        "--db",
+        type=Path,
+        default=DEFAULT_DB,
+        metavar="PATH",
+        help="output SQLite database path",
+    )
     build.add_argument(
         "--msg-id",
         type=int,
         action="append",
-        help="MSG ID to include; repeat to build a subset",
+        metavar="MSG_ID",
+        help=(
+            "MSG ID to include as an integer in the range 1-1651; repeat this "
+            "option to build a subset. When omitted, all MSG IDs are included"
+        ),
     )
 
-    msg = subparsers.add_parser("msg", help="list operations for one MSG ID")
-    msg.add_argument("msg_id", type=int)
-    msg.add_argument("--db", type=Path, default=DEFAULT_DB)
-    msg.add_argument("--format", choices=["json", "table"], default="table")
+    msg = subparsers.add_parser(
+        "msg",
+        help="list operations for one MSG ID",
+        description="List MSG type metadata and operation keys for one MSG ID.",
+        formatter_class=HelpFormatter,
+    )
+    msg.add_argument(
+        "msg_id",
+        type=int,
+        metavar="MSG_ID",
+        help="MSG ID as an integer in the range 1-1651",
+    )
+    msg.add_argument(
+        "--db",
+        type=Path,
+        default=DEFAULT_DB,
+        metavar="PATH",
+        help="input SQLite database path",
+    )
+    msg.add_argument(
+        "--format",
+        choices=["json", "table"],
+        default="table",
+        metavar="{json,table}",
+        help="output format",
+    )
 
     operation = subparsers.add_parser(
         "operation",
         help="list MSG IDs containing an operation key",
+        description="List MSG IDs that contain one normalized operation key.",
+        formatter_class=HelpFormatter,
     )
-    operation.add_argument("--rotation", required=True)
-    operation.add_argument("--translation", required=True)
-    operation.add_argument("--time-reversal", type=int, choices=[0, 1], required=True)
-    operation.add_argument("--db", type=Path, default=DEFAULT_DB)
-    operation.add_argument("--format", choices=["json", "table"], default="table")
+    operation.add_argument(
+        "--rotation",
+        required=True,
+        metavar="R11,R12,...,R33",
+        help=(
+            "9 comma-separated integer rotation entries in row-major order, "
+            "for example 1,0,0,0,1,0,0,0,1"
+        ),
+    )
+    operation.add_argument(
+        "--translation",
+        required=True,
+        metavar="T1,T2,T3",
+        help=(
+            "3 comma-separated translation entries as integers or fractions, "
+            "for example 0,1/2,0"
+        ),
+    )
+    operation.add_argument(
+        "--time-reversal",
+        type=int,
+        choices=[0, 1],
+        required=True,
+        metavar="{0,1}",
+        help="time-reversal flag: 0 for false, 1 for true",
+    )
+    operation.add_argument(
+        "--db",
+        type=Path,
+        default=DEFAULT_DB,
+        metavar="PATH",
+        help="input SQLite database path",
+    )
+    operation.add_argument(
+        "--format",
+        choices=["json", "table"],
+        default="table",
+        metavar="{json,table}",
+        help="output format",
+    )
 
-    metadata = subparsers.add_parser("metadata", help="show database metadata")
-    metadata.add_argument("--db", type=Path, default=DEFAULT_DB)
-    metadata.add_argument("--format", choices=["json", "table"], default="table")
+    metadata = subparsers.add_parser(
+        "metadata",
+        help="show database metadata",
+        description="Show reproducibility metadata stored in the SQLite database.",
+        formatter_class=HelpFormatter,
+    )
+    metadata.add_argument(
+        "--db",
+        type=Path,
+        default=DEFAULT_DB,
+        metavar="PATH",
+        help="input SQLite database path",
+    )
+    metadata.add_argument(
+        "--format",
+        choices=["json", "table"],
+        default="table",
+        metavar="{json,table}",
+        help="output format",
+    )
 
     return parser
 

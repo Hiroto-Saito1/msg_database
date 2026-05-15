@@ -19,4 +19,4 @@ def test_legacy_script_shows_cli_help():
     )
 
     assert result.returncode == 0
-    assert "msg_database" in result.stdout
+    assert "msg-database" in result.stdout

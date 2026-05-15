@@ -63,6 +63,8 @@ MSG ID から群操作一覧を JSON で取得します。
 .venv/bin/msg-database metadata --db data/generated/msg_database.sqlite
 ```
 
+CLI 引数の型、形式、必須/任意、デフォルト値の詳細は [docs/cli.md](docs/cli.md) を参照してください。実行時には各サブコマンドの `--help` でも確認できます。
+
 ## テスト
 
 通常のテストでは slow テストを除外します。
