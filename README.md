@@ -75,6 +75,8 @@ CLI 引数の型、形式、必須/任意、デフォルト値の詳細は [docs
 
 DB schema、MSG と operation の多対多関係、中間テーブル `msg_operation` を使った逆引きの仕組みは [docs/schema.md](docs/schema.md) を参照してください。
 
+具体的な入力、コマンド、出力例は [examples/README.md](examples/README.md) を参照してください。
+
 ## 配布
 
 配布物の build、TestPyPI/PyPI への publish、Trusted Publishing の設定手順は [docs/packaging.md](docs/packaging.md) を参照してください。
